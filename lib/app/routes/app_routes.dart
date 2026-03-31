@@ -41,6 +41,7 @@ abstract class Routes {
   static const COMPANIES_LIST = _Paths.COMPANIES_LIST;
   static const COMPANY_DIVISION = _Paths.COMPANY_DIVISION;
   static const COMPANY_DIVISION_SELECTION = _Paths.COMPANY_DIVISION_SELECTION;
+  static const BUYER_FAV_AGENCY_SELECTION = _Paths.BUYER_FAV_AGENCY_SELECTION;
 }
 
 abstract class _Paths {
@@ -84,4 +85,5 @@ abstract class _Paths {
   static const COMPANIES_LIST = '/companies-list';
   static const COMPANY_DIVISION = '/company-division';
   static const COMPANY_DIVISION_SELECTION = '/company-division-selection';
+  static const BUYER_FAV_AGENCY_SELECTION = '/buyer-fav-agency-selection';
 }

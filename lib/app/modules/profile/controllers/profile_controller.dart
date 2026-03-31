@@ -75,6 +75,12 @@ class ProfileController extends GetxController {
       'route': '/notifications',
     },
     {
+      'icon': Icons.favorite_border_outlined,
+      'title': 'Favorite Agency',
+      'subtitle': 'Buyer favorite agency selection',
+      'route': '/buyer-fav-agency-selection',
+    },
+    {
       'icon': Icons.help_outline,
       'title': 'Help & Support',
       'subtitle': 'Get help and contact support',

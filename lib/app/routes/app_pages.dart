@@ -26,6 +26,8 @@ import '../modules/auth/views/phone_login_view.dart';
 import '../modules/auth/views/register_view.dart';
 import '../modules/bussiness_ditails/bindings/bussiness_ditails_binding.dart';
 import '../modules/bussiness_ditails/views/bussiness_ditails_view.dart';
+import '../modules/buyerFavAgencySelection/bindings/buyer_fav_agency_selection_binding.dart';
+import '../modules/buyerFavAgencySelection/views/buyer_fav_agency_selection_view.dart';
 import '../modules/cart/bindings/cart_binding.dart';
 import '../modules/cart/views/cart_view.dart';
 import '../modules/categories/bindings/categories_binding.dart';
@@ -283,6 +285,11 @@ class AppPages {
       name: _Paths.COMPANY_DIVISION,
       page: () => const CompanyDivisionView(),
       binding: CompanyDivisionBinding(),
+    ),
+    GetPage(
+      name: _Paths.BUYER_FAV_AGENCY_SELECTION,
+      page: () => const BuyerFavAgencySelectionView(),
+      binding: BuyerFavAgencySelectionBinding(),
     ),
   ];
 }

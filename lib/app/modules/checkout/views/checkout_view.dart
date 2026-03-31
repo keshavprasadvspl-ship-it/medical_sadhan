@@ -524,7 +524,7 @@ class CheckoutView extends GetView<CheckoutController> {
                     /// ✅ Unit Price
                     _buildDetailRow(
                       Icons.currency_rupee,
-                      'Unit Price',
+                      'PTR Price',
                       '₹${item.price.toStringAsFixed(2)}',
                     ),
 

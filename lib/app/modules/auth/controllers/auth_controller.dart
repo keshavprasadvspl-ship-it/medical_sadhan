@@ -509,6 +509,7 @@ class AuthController extends GetxController {
           // Buyers go directly to main screen
           print("Redirecting buyer to main screen...");
           await Get.offAllNamed('/main');
+          // await Get.offAllNamed('/main');
         } else {
           // For vendors/sellers, check if onboarding is complete
           if (onboardingComplete) {
@@ -780,7 +781,8 @@ class AuthController extends GetxController {
         if (userType == 'buyer') {
           // Buyers go directly to main screen
           print("Redirecting buyer to main screen...");
-          await Get.offAllNamed('/main');
+          await Get.offAllNamed('/buyer-fav-agency-selection');
+          // await Get.offAllNamed('/main');
         } else {
           // ✅ UPDATED: Vendors go to CATEGORY SELECTION first
           print("Redirecting vendor to category selection for onboarding...");

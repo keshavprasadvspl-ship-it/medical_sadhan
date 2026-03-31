@@ -7,6 +7,7 @@ import '../models/banner_model.dart';
 import '../models/cart_item_model.dart';
 import '../models/medicine_model.dart';
 import '../models/product_model.dart';
+import 'api_endpoints.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -66,6 +67,135 @@ class ApiService {
   }
 
   // ✅ Alternative: Get divisions by company ID using http
+
+
+  Future<Map<String, dynamic>> saveFavoriteAgencies(String buyerId ,List<String> selectedAgencyIds) async {
+    try {
+      print('🌐 Saving favorite agencies...');
+      print('Selected Agency IDs: $selectedAgencyIds');
+
+      final url = Uri.parse('${ApiEndpoints.baseUrl}/buyer/favorite-agencies');
+
+      final requestBody = jsonEncode({
+        'buyer_id': buyerId,
+        'agency_ids': selectedAgencyIds,
+      });
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization token if required
+          // 'Authorization': 'Bearer ${getToken()}',
+        },
+        body: requestBody,
+      );
+
+      print('📡 Response status code: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        print('✅ Favorite agencies saved successfully');
+        return responseData;
+      } else {
+        print('❌ Error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Failed to save favorite agencies. Status code: ${response.statusCode}',
+          'data': null
+        };
+      }
+    } catch (e) {
+      print('❌ Error saving favorite agencies: $e');
+      return {
+        'success': false,
+        'message': 'Failed to save favorite agencies: $e',
+        'data': null
+      };
+    }
+  }
+
+// Optional: Get saved favorite agencies
+  Future<Map<String, dynamic>> getFavoriteAgencies(String buyerID) async {
+    try {
+      final buyerId = buyerID;
+      print('🌐 Fetching favorite agencies...');
+
+      final url = Uri.parse('${ApiEndpoints.baseUrl}/buyer/favorite-agencies?buyer_id=$buyerId');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': 'Bearer ${getToken()}',
+        },
+      );
+
+      print('📡 Response status code: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print('✅ Favorite agencies fetched successfully');
+        return responseData;
+      } else {
+        print('❌ Error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Failed to load favorite agencies. Status code: ${response.statusCode}',
+          'data': []
+        };
+      }
+    } catch (e) {
+      print('❌ Error fetching favorite agencies: $e');
+      return {
+        'success': false,
+        'message': 'Failed to load favorite agencies: $e',
+        'data': []
+      };
+    }
+  }
+
+// Optional: Delete a favorite agency
+  Future<Map<String, dynamic>> deleteFavoriteAgency(String agencyId) async {
+    try {
+      print('🌐 Deleting favorite agency: $agencyId');
+
+      final url = Uri.parse('${ApiEndpoints.baseUrl}/buyer/favorite-agencies/$agencyId');
+
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': 'Bearer ${getToken()}',
+        },
+      );
+
+      print('📡 Response status code: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print('✅ Favorite agency deleted successfully');
+        return responseData;
+      } else {
+        print('❌ Error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Failed to delete favorite agency. Status code: ${response.statusCode}',
+          'data': null
+        };
+      }
+    } catch (e) {
+      print('❌ Error deleting favorite agency: $e');
+      return {
+        'success': false,
+        'message': 'Failed to delete favorite agency: $e',
+        'data': null
+      };
+    }
+  }
 
 
   Future<List<BannerModel>> getBanners({String type = 'all', int limit = 10}) async {
