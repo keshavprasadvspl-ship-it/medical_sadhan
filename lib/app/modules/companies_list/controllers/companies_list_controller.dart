@@ -195,7 +195,8 @@ class CompaniesListViewController extends GetxController {
       final isActive = company.isActive;
 
       if (matchesSearch && isActive) {
-        print("   ✅ Including company: ${company.name}");
+        print(company);
+        print("   ✅ Including company: ${company}");
       }
 
       return matchesSearch && isActive;

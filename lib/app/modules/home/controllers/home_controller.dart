@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart' show Colors;
 import 'package:get/get.dart';
 import 'package:medical_b2b_app/app/data/providers/api_endpoints.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../data/providers/api_provider.dart';
 import 'banner_controller.dart';
 
 class HomeController extends GetxController {
   final currentIndex = 0.obs;
+  final userId = 0.obs;
   final ApiService _apiService = Get.find<ApiService>();
   final selectedPaymentMethod = Rx<Map<String, dynamic>?>( null);
   late final BannerController bannerController;
@@ -49,8 +53,17 @@ class HomeController extends GetxController {
   }
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
+    final prefs = await SharedPreferences.getInstance();
+    final userDataString = prefs.getString('user_data');
+    if (userDataString != null) {
+
+      // Load user data from prefs
+      final userData = json.decode(userDataString);
+      userId.value = userData['id'] ?? 0;
+
+    }
     bannerController = Get.put(BannerController());
     loadCategories();
     loadFeaturedProducts();
@@ -147,7 +160,7 @@ print(apiProducts);
       isLoadingVendors.value = true;
       vendorsErrorMessage.value = '';
 
-      final apiVendors = await _apiService.getVendors(limit: 10);
+      final apiVendors = await _apiService.getFavVendors("${userId.value}");
       print("apiVendors");
       print(apiVendors);
 

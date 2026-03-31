@@ -25,11 +25,14 @@ class CheckoutView extends GetView<CheckoutController> {
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
+                if (controller.isVendorSpecific)
+                  _buildVendorInfo(),
                 _buildDeliveryAddress(),
                 const SizedBox(height: 12),
                 _buildOrderSummary(),
                 const SizedBox(height: 12),
-                _buildReferralSection(),
+                if (controller.referredBy.value.isNotEmpty)
+                  _buildReferralSection(),
                 const SizedBox(height: 100),
               ],
             ),
@@ -59,13 +62,10 @@ class CheckoutView extends GetView<CheckoutController> {
         ),
         onPressed: () => Get.back(),
       ),
-      title: const Text(
-        'Checkout',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF111261),
-        ),
+      title: Text(
+        controller.isVendorSpecific && controller.vendorName != null
+            ? 'Checkout - ${controller.vendorName}'
+            : 'Checkout',
       ),
       centerTitle: true,
     );
@@ -81,6 +81,74 @@ class CheckoutView extends GetView<CheckoutController> {
           Text(
             'Loading checkout...',
             style: TextStyle(color: Color(0xFF111261), fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVendorInfo() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFF0B630B), const Color(0xFF0B630B).withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.store_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Checking out from',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                  ),
+                ),
+                Text(
+                  controller.vendorName ?? 'Vendor',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${controller.cartItems.length} ${controller.cartItems.length == 1 ? 'item' : 'items'}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -243,15 +311,15 @@ class CheckoutView extends GetView<CheckoutController> {
                 ),
                 child: isSelected
                     ? Center(
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF0B630B),
-                          ),
-                        ),
-                      )
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF0B630B),
+                    ),
+                  ),
+                )
                     : null,
               ),
               const SizedBox(width: 12),
@@ -270,8 +338,8 @@ class CheckoutView extends GetView<CheckoutController> {
                             color: address.addressLabel == 'Home'
                                 ? Colors.blue.withOpacity(0.1)
                                 : address.addressLabel == 'Office'
-                                    ? Colors.orange.withOpacity(0.1)
-                                    : Colors.purple.withOpacity(0.1),
+                                ? Colors.orange.withOpacity(0.1)
+                                : Colors.purple.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -282,8 +350,8 @@ class CheckoutView extends GetView<CheckoutController> {
                               color: address.addressLabel == 'Home'
                                   ? Colors.blue
                                   : address.addressLabel == 'Office'
-                                      ? Colors.orange
-                                      : Colors.purple,
+                                  ? Colors.orange
+                                  : Colors.purple,
                             ),
                           ),
                         ),
@@ -466,20 +534,20 @@ class CheckoutView extends GetView<CheckoutController> {
                           ),
                           child: item.image.isNotEmpty
                               ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    _getFullImageUrl(item.image),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                      Icons.medical_services,
-                                      color: Color(0xFF111261),
-                                    ),
-                                  ),
-                                )
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              _getFullImageUrl(item.image),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.medical_services,
+                                color: Color(0xFF111261),
+                              ),
+                            ),
+                          )
                               : const Icon(
-                                  Icons.medical_services,
-                                  color: Color(0xFF111261),
-                                ),
+                            Icons.medical_services,
+                            color: Color(0xFF111261),
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -600,58 +668,55 @@ class CheckoutView extends GetView<CheckoutController> {
   }
 
   Widget _buildReferralSection() {
-    return Obx(() {
-      if (controller.referredBy.value.isEmpty) return const SizedBox.shrink();
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF111261).withOpacity(0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF111261).withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B630B).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0B630B).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+            child: const Icon(
+              Icons.person_add,
+              color: Color(0xFF0B630B),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Referred By',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
-              child: const Icon(
-                Icons.person_add,
-                color: Color(0xFF0B630B),
-                size: 20,
+              Text(
+                controller.referredBy.value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111261),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Referred By',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  controller.referredBy.value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111261),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    });
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSummaryRow(String label, double amount,
@@ -679,11 +744,11 @@ class CheckoutView extends GetView<CheckoutController> {
 
   /// ✅ Item detail row helper
   Widget _buildDetailRow(
-    IconData icon,
-    String label,
-    String value, {
-    Color? valueColor,
-  }) {
+      IconData icon,
+      String label,
+      String value, {
+        Color? valueColor,
+      }) {
     return Row(
       children: [
         Icon(icon, size: 15, color: Colors.grey[500]),
@@ -738,41 +803,41 @@ class CheckoutView extends GetView<CheckoutController> {
             ),
             child: controller.isPlacingOrder.value
                 ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
                 : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Request Order',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '₹${controller.total.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Request Order',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '₹${controller.total.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }),
       ),
@@ -784,7 +849,7 @@ class CheckoutView extends GetView<CheckoutController> {
       AlertDialog(
         title: const Text('Remove Address'),
         content:
-            const Text('Are you sure you want to remove this address?'),
+        const Text('Are you sure you want to remove this address?'),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
@@ -820,7 +885,7 @@ class CheckoutView extends GetView<CheckoutController> {
       return imagePath;
     }
     String cleanPath =
-        imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+    imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
     return baseUrl + cleanPath;
   }
 }
