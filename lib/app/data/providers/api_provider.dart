@@ -540,14 +540,18 @@ print(body);
 
       if (response.statusCode == 200 && responseData['success'] == true) {
         final List<dynamic> companiesData = responseData['data'];
+
+        // IMPORTANT: Return the FULL data including categories
         return companiesData.map((company) {
           return {
-            'id': company['id'].toString(),
+            'id': company['id'],
             'name': company['name'] ?? '',
-            'logo': company['image'] ?? '',
+            'image': company['image'] ?? '',
             'description': company['description'] ?? '',
             'is_active': company['is_active'] ?? false,
-            'type': 'pharma', // You can modify this based on your data
+            'created_at': company['created_at'] ?? '',
+            'updated_at': company['updated_at'] ?? '',
+            'categories': company['categories'] ?? [], // THIS IS CRITICAL - KEEP THE CATEGORIES
           };
         }).toList();
       } else {
