@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:medical_b2b_app/vendor_app/app/modules/orders/controllers/orders_controller.dart';
+import 'package:medical_b2b_app/vendor_app/app/modules/orders/views/cash_order_view.dart';
+import 'package:medical_b2b_app/vendor_app/app/modules/orders/views/chalan_orders_view.dart';
 import '../../../../../app/data/models/vendors_orders_model.dart';
 import '../../../../../app/routes/app_pages.dart';
 import '../controllers/dashboard_controller.dart';
@@ -12,7 +15,7 @@ class DashboardView extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FC),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -20,16 +23,17 @@ class DashboardView extends GetView<DashboardController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Dashboard',
+              'Medical Dashboard',
               style: TextStyle(
-                color: Colors.black,
-                fontSize: 24,
+                color: const Color(0xFF1E2A3E),
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
               ),
             ),
             Obx(() => Text(
                   'Welcome back, Vendor #${controller.vendorId.value}',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 )),
           ],
         ),
@@ -37,7 +41,7 @@ class DashboardView extends GetView<DashboardController> {
           Stack(
             children: [
               IconButton(
-                icon: Icon(Icons.notifications_outlined, color: Colors.black),
+                icon: Icon(Icons.notifications_outlined, color: const Color(0xFF1E2A3E)),
                 onPressed: () => Get.toNamed(Routes.NOTIFICATIONS),
               ),
               Obx(() {
@@ -46,19 +50,19 @@ class DashboardView extends GetView<DashboardController> {
                     right: 8,
                     top: 8,
                     child: Container(
-                      padding: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE74C3C),
                         shape: BoxShape.circle,
                       ),
                       child: Text(
                         '${controller.pendingOrders.value}',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
+                        style: const TextStyle(color: Colors.white, fontSize: 10),
                       ),
                     ),
                   );
                 }
-                return SizedBox();
+                return const SizedBox();
               }),
             ],
           ),
@@ -66,13 +70,13 @@ class DashboardView extends GetView<DashboardController> {
             onPressed: () async {
               await controller.logout();
             },
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Color(0xFF1E2A3E)),
           )
         ],
       ),
       body: Obx(
         () => controller.isLoading.value
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: () async => controller.refreshDashboard(),
                 child: NotificationListener<ScrollNotification>(
@@ -85,118 +89,135 @@ class DashboardView extends GetView<DashboardController> {
                     return true;
                   },
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Stats Cards
+                        // Stats Cards - Medical Theme (3 cards only)
                         GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          childAspectRatio: 1.3,
+                          physics: const NeverScrollableScrollPhysics(),
+                          childAspectRatio: 0.8,
                           children: [
-                            _buildStatCard(
+                            _buildMedicalStatCard(
                               'Pending Orders',
                               controller.pendingOrders.value.toString(),
-                              Icons.access_time,
-                              [
-                                Colors.orange.shade400,
-                                Colors.deepOrange.shade600
-                              ],
+                              Icons.medical_services,
+                              const Color(0xFFFF6B6B),
+                              const Color(0xFFEE5A5A),
                             ),
-                            _buildStatCard(
-                              "Products",
-                              controller.deliveredOrders.value.toString(),
-                              Icons.check_circle,
-                              [
-                                Colors.green.shade400,
-                                Colors.green.shade600
-                              ],
-                            ),
-                            _buildStatCard(
+                            _buildMedicalStatCard(
                               "Today's Revenue",
                               controller.getFormattedRevenue(
                                   controller.todayRevenue.value),
                               Icons.trending_up,
-                              [
-                                Colors.blue.shade400,
-                                Colors.indigo.shade600
-                              ],
+                              const Color(0xFF5D9BEC),
+                              const Color(0xFF4A8FE7),
                             ),
-                            _buildStatCard(
+                            _buildMedicalStatCard(
                               'Cancelled',
                               controller.cancelledOrders.value.toString(),
                               Icons.cancel,
-                              [Colors.red.shade400, Colors.red.shade600],
+                              const Color(0xFFE74C3C),
+                              const Color(0xFFD94333),
                             ),
                           ],
                         ),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 20),
 
-                        // Stats Summary Row
+                        // Stats Summary Row - Enhanced Medical Navigation
                         Container(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
+                                color: Colors.grey.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildSummaryItem(
+                              _buildMedicalSummaryItem(
                                 'Total Orders',
                                 controller.totalOrders.value.toString(),
-                                Icons.shopping_bag,
-                                Colors.blue,
+                                Icons.shopping_bag_outlined,
+                                const Color(0xFF5D9BEC),
+                                onTap: () => Get.toNamed(Routes.VENDERS_ORDERS),
                               ),
-                              _buildSummaryItem(
-                                'Total Revenue',
-                                controller.getFormattedRevenue(
-                                    controller.totalRevenue.value),
-                                Icons.currency_rupee,
-                                Colors.green,
-                              ),
-                              _buildSummaryItem(
+                              _buildMedicalSummaryItem(
                                 'Products',
                                 controller.totalProducts.value.toString(),
-                                Icons.inventory,
-                                Colors.purple,
+                                Icons.inventory_2_outlined,
+                                const Color(0xFF4ECDC4),
+                                onTap: () => Get.toNamed(Routes.VENDORS_PORDUCTS),
+                              ),
+                              GestureDetector(
+                                onTap: () => Get.to(
+                                  () => const ChallanOrdersView(),
+                                  binding: BindingsBuilder(
+                                    () => Get.put(VendorsOrdersController()),
+                                  ),
+                                ),
+                                child: _buildMedicalSummaryItem(
+                                  'Challan',
+                                  controller.totalOrders.value.toString(),
+                                  Icons.receipt_long,
+                                  const Color(0xFF9B59B6),
+                                  onTap: null,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Get.to(
+                                  () => const CashOrdersView(),
+                                  binding: BindingsBuilder(
+                                    () => Get.put(VendorsOrdersController()),
+                                  ),
+                                ),
+                                child: _buildMedicalSummaryItem(
+                                  'Challan',
+                                  controller.totalOrders.value.toString(),
+                                  Icons.receipt_long,
+                                  const Color(0xFFE67E22),
+                                  onTap: null,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
                         // Pending Orders Section
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Pending Orders',
+                              'Pending Medical Orders',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E2A3E),
                               ),
                             ),
                             TextButton(
                               onPressed: () {
                                 Get.toNamed(Routes.VENDERS_ORDERS);
                               },
-                              child: Text('View All'),
+                              child: const Text(
+                                'View All',
+                                style: TextStyle(color: Color(0xFF5D9BEC)),
+                              ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
 
                         // Pending Orders List
                         if (controller.pendingOrdersList.isEmpty)
@@ -204,7 +225,7 @@ class DashboardView extends GetView<DashboardController> {
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -216,7 +237,7 @@ class DashboardView extends GetView<DashboardController> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'No pending orders',
+                                  'No pending medical orders',
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
                                     fontSize: 16,
@@ -230,10 +251,9 @@ class DashboardView extends GetView<DashboardController> {
                             children: [
                               ...controller.pendingOrdersList
                                   .take(5)
-                                  .map((order) =>
-                                      _buildPendingOrderCard(order)),
+                                  .map((order) => _buildMedicalOrderCard(order)),
                               if (controller.isLoadingMore.value)
-                                Center(
+                                const Center(
                                   child: Padding(
                                     padding: EdgeInsets.all(16),
                                     child: CircularProgressIndicator(),
@@ -244,79 +264,92 @@ class DashboardView extends GetView<DashboardController> {
                                   onPressed: () {
                                     Get.toNamed(Routes.VENDERS_ORDERS);
                                   },
-                                  child: Text('Load More...'),
+                                  child: const Text('Load More...'),
                                 ),
                             ],
                           ),
-
-                        SizedBox(height: 24),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
               ),
       ),
-      // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              break;
-            case 1:
-              Get.toNamed(Routes.VENDERS_ORDERS);
-              break;
-            case 2:
-              Get.toNamed(Routes.VENDORS_PORDUCTS);
-              break;
-            case 3:
-              Get.toNamed(Routes.VENDORS_PROFILE);
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          currentIndex: 0,
+          selectedItemColor: const Color(0xFF5D9BEC),
+          unselectedItemColor: Colors.grey,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          onTap: (index) {
+            switch (index) {
+              case 0:
+                break;
+              case 1:
+                Get.toNamed(Routes.VENDERS_ORDERS);
+                break;
+              case 2:
+                Get.toNamed(Routes.VENDORS_PORDUCTS);
+                break;
+              case 3:
+                Get.toNamed(Routes.VENDORS_PROFILE);
+                break;
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.medical_services),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_bag),
+              label: 'Orders',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory),
+              label: 'Products',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStatCard(
+  Widget _buildMedicalStatCard(
     String title,
     String value,
     IconData icon,
-    List<Color> colors,
+    Color color,
+    Color gradientColor,
   ) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: colors,
+          colors: [color, gradientColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.3),
+            color: color.withOpacity(0.3),
             blurRadius: 8,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           )
         ],
       ),
@@ -324,63 +357,85 @@ class DashboardView extends GetView<DashboardController> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: Colors.white.withOpacity(0.8), size: 32),
-              Text(
-                value,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Text(
             title,
-            style:
-                TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryItem(
-      String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 20),
+  Widget _buildMedicalSummaryItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildPendingOrderCard(OrderModel order) {
+  Widget _buildMedicalOrderCard(OrderModel order) {
     final customerName =
         order.shippingAddress?.contactPerson ?? 'Customer';
     final location = order.shippingAddress != null
@@ -392,43 +447,50 @@ class DashboardView extends GetView<DashboardController> {
     final firstItem = order.items.isNotEmpty ? order.items.first : null;
 
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
       child: InkWell(
         onTap: () => Get.toNamed(
           Routes.VENDERS_ORDER_DETAIL,
           arguments: order.id,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // ── Top Row: Icon + Order Details ──────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF5D9BEC).withOpacity(0.1),
+                          const Color(0xFF5D9BEC).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.inventory_2_outlined,
-                      color: Colors.blue.shade700,
-                      size: 24,
+                      Icons.medical_services,
+                      color: const Color(0xFF5D9BEC),
+                      size: 28,
                     ),
                   ),
-                  SizedBox(width: 12),
-
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Order Number + Payment Badge
                         Row(
                           children: [
                             Expanded(
@@ -437,37 +499,35 @@ class DashboardView extends GetView<DashboardController> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  fontFamily: 'monospace',
+                                  color: const Color(0xFF1E2A3E),
                                 ),
                               ),
                             ),
                             Container(
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _getPaymentStatusColor(
+                                color: _getMedicalPaymentStatusColor(
                                     order.paymentStatus),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 order.paymentMethod.toUpperCase(),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 10,
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 4),
-
-                        // Customer Name
+                        const SizedBox(height: 6),
                         Row(
                           children: [
                             Icon(Icons.person_outline,
-                                size: 14, color: Colors.grey),
-                            SizedBox(width: 4),
+                                size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 customerName,
@@ -479,14 +539,12 @@ class DashboardView extends GetView<DashboardController> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 2),
-
-                        // Location
+                        const SizedBox(height: 2),
                         Row(
                           children: [
                             Icon(Icons.location_on_outlined,
-                                size: 14, color: Colors.grey),
-                            SizedBox(width: 4),
+                                size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 location,
@@ -498,15 +556,13 @@ class DashboardView extends GetView<DashboardController> {
                             ),
                           ],
                         ),
-
-                        // Product Preview
                         if (firstItem != null) ...[
-                          SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Container(
-                            padding: EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
@@ -514,29 +570,32 @@ class DashboardView extends GetView<DashboardController> {
                                         .isNotEmpty ??
                                     false)
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(8),
                                     child: Image.network(
                                       firstItem.vendorProduct!.product!.images
                                           .first.imageUrl,
-                                      width: 30,
-                                      height: 30,
+                                      width: 40,
+                                      height: 40,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => Icon(
-                                        Icons.image_not_supported,
+                                        Icons.medical_information,
                                         size: 30,
-                                        color: Colors.grey,
+                                        color: Colors.grey.shade400,
                                       ),
                                     ),
                                   )
                                 else
                                   Container(
-                                    width: 30,
-                                    height: 30,
-                                    color: Colors.grey.shade200,
-                                    child: Icon(Icons.image,
-                                        size: 16, color: Colors.grey),
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(Icons.medical_information,
+                                        size: 20, color: Colors.grey.shade500),
                                   ),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -544,9 +603,10 @@ class DashboardView extends GetView<DashboardController> {
                                     children: [
                                       Text(
                                         firstItem.productName,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E2A3E),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -554,7 +614,7 @@ class DashboardView extends GetView<DashboardController> {
                                       Text(
                                         'Qty: ${firstItem.quantity} × ₹${firstItem.unitPrice.toStringAsFixed(0)}',
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 11,
                                           color: Colors.grey.shade600,
                                         ),
                                       ),
@@ -563,16 +623,17 @@ class DashboardView extends GetView<DashboardController> {
                                 ),
                                 if (totalItems > 1)
                                   Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      '+${totalItems - 1} more',
+                                      '+${totalItems - 1}',
                                       style: TextStyle(
-                                        fontSize: 9,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
                                         color: Colors.grey.shade700,
                                       ),
                                     ),
@@ -586,18 +647,15 @@ class DashboardView extends GetView<DashboardController> {
                   ),
                 ],
               ),
-
-              SizedBox(height: 12),
-
-              // ── Date + Amount Row ───────────────────────────────────────
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Icon(Icons.access_time,
-                          size: 16, color: Colors.grey.shade500),
-                      SizedBox(width: 4),
+                          size: 14, color: Colors.grey.shade500),
+                      const SizedBox(width: 4),
                       Text(
                         DateFormat('dd MMM yyyy, hh:mm a')
                             .format(order.createdAt),
@@ -608,84 +666,79 @@ class DashboardView extends GetView<DashboardController> {
                   ),
                   Container(
                     padding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF5D9BEC).withOpacity(0.1),
+                          const Color(0xFF5D9BEC).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '₹${order.finalAmount.toStringAsFixed(2)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Colors.blue.shade700,
+                        color: Color(0xFF5D9BEC),
                       ),
                     ),
                   ),
                 ],
               ),
-
-              SizedBox(height: 12),
-              Divider(height: 1),
-              SizedBox(height: 10),
-
-              // ── Action Buttons: Reject | Overdue | Accept ───────────────
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  // Reject Button
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () =>
                           controller.showRejectDialog(order.id),
-                      icon: Icon(Icons.cancel_outlined, size: 15),
-                      label: Text('Reject', style: TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.cancel_outlined, size: 16),
+                      label: const Text('Reject', style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: Colors.red.shade300),
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        foregroundColor: const Color(0xFFE74C3C),
+                        side: const BorderSide(color: Color(0xFFE74C3C)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
                   ),
-
-                  SizedBox(width: 6),
-
-                  // ── Overdue Button (BEECH MEIN) ──────────────────────────
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => controller.overdueOrder(order.id),
-                      icon: Icon(Icons.timer_off_outlined, size: 15),
-                      label:
-                          Text('Overdue', style: TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.timer_off_outlined, size: 16),
+                      label: const Text('Overdue', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade700,
+                        backgroundColor: const Color(0xFFE67E22),
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         elevation: 0,
                       ),
                     ),
                   ),
-
-                  SizedBox(width: 6),
-
-                  // Accept Button
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => controller.acceptOrder(order.id),
-                      icon: Icon(Icons.check_circle_outline, size: 15),
-                      label:
-                          Text('Accept', style: TextStyle(fontSize: 12)),
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text('Accept', style: TextStyle(fontSize: 12)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: const Color(0xFF4ECDC4),
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         elevation: 0,
                       ),
@@ -700,14 +753,14 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Color _getPaymentStatusColor(String status) {
+  Color _getMedicalPaymentStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
-        return Colors.green;
+        return const Color(0xFF4ECDC4);
       case 'pending':
-        return Colors.orange;
+        return const Color(0xFFE67E22);
       case 'failed':
-        return Colors.red;
+        return const Color(0xFFE74C3C);
       default:
         return Colors.grey;
     }

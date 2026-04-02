@@ -483,14 +483,16 @@ class _VendorsOrderDetailViewState extends State<VendorsOrderDetailView> {
               ],
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              item.quantity.toString(),
-              style: TextStyle(fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-          ),
+Expanded(
+  flex: 1,
+  child: Text(
+    item.addon != null && item.addon > 0
+        ? '${item.quantity}+${item.addon}'
+        : item.quantity.toString(),
+    style: TextStyle(fontWeight: FontWeight.w500),
+    textAlign: TextAlign.center,
+  ),
+),
           Expanded(
             flex: 2,
             child: Text(

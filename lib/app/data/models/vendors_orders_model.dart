@@ -28,6 +28,7 @@ class OrderModel {
   final String? tallyOrderNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? referralNote; // ← NEW: refferal_note from API
   final Address? shippingAddress;
   final Address? billingAddress;
   final List<OrderItem> items;
@@ -60,6 +61,7 @@ class OrderModel {
     this.tallyOrderNumber,
     required this.createdAt,
     required this.updatedAt,
+    this.referralNote, // ← NEW
     this.shippingAddress,
     this.billingAddress,
     required this.items,
@@ -94,6 +96,7 @@ class OrderModel {
       tallyOrderNumber: _toStringOrNull(json['tally_order_number']),
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDate(json['updated_at']),
+      referralNote: _toStringOrNull(json['refferal_note']), // ← NEW (API key has typo)
       shippingAddress: json['shipping_address'] != null
           ? Address.fromJson(json['shipping_address'])
           : null,
@@ -101,11 +104,13 @@ class OrderModel {
           ? Address.fromJson(json['billing_address'])
           : null,
       items: (json['items'] as List?)
-          ?.map((item) => OrderItem.fromJson(item))
-          .toList() ?? [],
+              ?.map((item) => OrderItem.fromJson(item))
+              .toList() ??
+          [],
       statusHistory: (json['status_history'] as List?)
-          ?.map((history) => StatusHistory.fromJson(history))
-          .toList() ?? [],
+              ?.map((history) => StatusHistory.fromJson(history))
+              .toList() ??
+          [],
       buyer: json['buyer'],
     );
   }
@@ -124,7 +129,6 @@ class OrderModel {
     if (value is double) return value;
     if (value is int) return value.toDouble();
     if (value is String) {
-      // Handle string formats like "61.00" or "1,234.56"
       final cleaned = value.replaceAll(',', '');
       return double.tryParse(cleaned) ?? 0.0;
     }
@@ -212,10 +216,10 @@ class Address {
       landmark: OrderModel._toStringOrNull(json['landmark']),
       city: OrderModel._toString(json['city']),
       state: OrderModel._toString(json['state']),
-      pincode: OrderModel._toString(json['pincode']), // PIN code might be int
+      pincode: OrderModel._toString(json['pincode']),
       country: OrderModel._toString(json['country']),
       contactPerson: OrderModel._toString(json['contact_person']),
-      contactPhone: OrderModel._toString(json['contact_phone']), // Phone might be int
+      contactPhone: OrderModel._toString(json['contact_phone']),
       contactEmail: OrderModel._toStringOrNull(json['contact_email']),
       isDefaultShipping: json['is_default_shipping'] ?? false,
       isDefaultBilling: json['is_default_billing'] ?? false,
@@ -247,7 +251,11 @@ class OrderItem {
   final String? batchNumber;
   final String? expiryDate;
   final int quantity;
+  final int addon;           // ← NEW: addon quantity from API
   final double unitPrice;
+  final double mrpPrice;     // ← NEW: mrp_price from API
+  final double discountMin;  // ← NEW: discount_min from API
+  final double discountMax;  // ← NEW: discount_max from API
   final double gstPercentage;
   final double gstAmount;
   final double totalPrice;
@@ -263,7 +271,11 @@ class OrderItem {
     this.batchNumber,
     this.expiryDate,
     required this.quantity,
+    required this.addon,       // ← NEW
     required this.unitPrice,
+    required this.mrpPrice,    // ← NEW
+    required this.discountMin, // ← NEW
+    required this.discountMax, // ← NEW
     required this.gstPercentage,
     required this.gstAmount,
     required this.totalPrice,
@@ -271,6 +283,9 @@ class OrderItem {
     this.returnReason,
     this.vendorProduct,
   });
+
+  /// Total quantity including free addon units
+  int get effectiveQuantity => quantity + addon;
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
@@ -281,7 +296,11 @@ class OrderItem {
       batchNumber: OrderModel._toStringOrNull(json['batch_number']),
       expiryDate: OrderModel._toStringOrNull(json['expiry_date']),
       quantity: OrderModel._toInt(json['quantity']),
+      addon: OrderModel._toInt(json['addon']),                           // ← NEW
       unitPrice: OrderModel._toDouble(json['unit_price']),
+      mrpPrice: OrderModel._toDouble(json['mrp_price']),                 // ← NEW
+      discountMin: OrderModel._toDouble(json['discount_min']),           // ← NEW
+      discountMax: OrderModel._toDouble(json['discount_max']),           // ← NEW
       gstPercentage: OrderModel._toDouble(json['gst_percentage']),
       gstAmount: OrderModel._toDouble(json['gst_amount']),
       totalPrice: OrderModel._toDouble(json['total_price']),
@@ -302,6 +321,8 @@ class VendorProduct {
   final String? packSize;
   final int? unitsPerPack;
   final double mrp;
+  final double discountMin; // ← NEW: discount_min from vendor_product
+  final double discountMax; // ← NEW: discount_max from vendor_product
   final double sellingPrice;
   final String? batchNumber;
   final String? manufacturingDate;
@@ -323,6 +344,8 @@ class VendorProduct {
     this.packSize,
     this.unitsPerPack,
     required this.mrp,
+    required this.discountMin, // ← NEW
+    required this.discountMax, // ← NEW
     required this.sellingPrice,
     this.batchNumber,
     this.manufacturingDate,
@@ -346,12 +369,14 @@ class VendorProduct {
       packSize: OrderModel._toStringOrNull(json['pack_size']),
       unitsPerPack: OrderModel._toInt(json['units_per_pack']),
       mrp: OrderModel._toDouble(json['mrp']),
+      discountMin: OrderModel._toDouble(json['discount_min']),   // ← NEW
+      discountMax: OrderModel._toDouble(json['discount_max']),   // ← NEW
       sellingPrice: OrderModel._toDouble(json['selling_price']),
       batchNumber: OrderModel._toStringOrNull(json['batch_number']),
       manufacturingDate: OrderModel._toStringOrNull(json['manufacturing_date']),
       expiryDate: OrderModel._toStringOrNull(json['expiry_date']),
       stockQuantity: OrderModel._toInt(json['stock_quantity']),
-      minOrderQuantity: OrderModel._toInt(json['min_order_quantity']) ?? 1,
+      minOrderQuantity: OrderModel._toInt(json['min_order_quantity']),
       maxOrderQuantity: OrderModel._toInt(json['max_order_quantity']),
       isAvailable: json['is_available'] ?? true,
       isVerified: json['is_verified'] ?? false,
@@ -373,6 +398,9 @@ class Product {
   final int unitId;
   final int categoryId;
   final double price;
+  final double mrpPrice;     // ← NEW: mrp_price from product
+  final double discountMin;  // ← NEW: discount_min from product
+  final double discountMax;  // ← NEW: discount_max from product
   final String hsnCode;
   final double gstPercentage;
   final String description;
@@ -394,6 +422,9 @@ class Product {
     required this.unitId,
     required this.categoryId,
     required this.price,
+    required this.mrpPrice,    // ← NEW
+    required this.discountMin, // ← NEW
+    required this.discountMax, // ← NEW
     required this.hsnCode,
     required this.gstPercentage,
     required this.description,
@@ -417,17 +448,21 @@ class Product {
       unitId: OrderModel._toInt(json['unit_id']),
       categoryId: OrderModel._toInt(json['category_id']),
       price: OrderModel._toDouble(json['price']),
-      hsnCode: OrderModel._toString(json['hsn_code']), // HSN code might be int
+      mrpPrice: OrderModel._toDouble(json['mrp_price']),               // ← NEW
+      discountMin: OrderModel._toDouble(json['discount_min']),         // ← NEW
+      discountMax: OrderModel._toDouble(json['discount_max']),         // ← NEW
+      hsnCode: OrderModel._toString(json['hsn_code']),
       gstPercentage: OrderModel._toDouble(json['gst_percentage']),
       description: OrderModel._toString(json['description']),
       sideEffects: OrderModel._toString(json['side_effects']),
       storageInstructions: OrderModel._toString(json['storage_instructions']),
       isPrescriptionRequired: OrderModel._toInt(json['is_prescription_required']),
-      isActive: OrderModel._toInt(json['is_active']) ?? 1,
+      isActive: OrderModel._toInt(json['is_active']),
       attributes: json['attributes'],
       images: (json['images'] as List?)
-          ?.map((img) => ProductImage.fromJson(img))
-          .toList() ?? [],
+              ?.map((img) => ProductImage.fromJson(img))
+              .toList() ??
+          [],
     );
   }
 }

@@ -27,7 +27,7 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
               ),
             ),
             Obx(
-                  () => Text(
+              () => Text(
                 '${controller.filteredOrders.length} orders found',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
@@ -58,40 +58,40 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
           // Orders List
           Expanded(
             child: Obx(
-                  () => controller.isLoading.value
+              () => controller.isLoading.value
                   ? Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
-                onRefresh: () async => controller.fetchOrders(reset: true),
-                child: controller.filteredOrders.isEmpty
-                    ? _buildEmptyState()
-                    : NotificationListener<ScrollNotification>(
-                  onNotification: (ScrollNotification scrollInfo) {
-                    if (!controller.isLoadingMore.value &&
-                        scrollInfo.metrics.pixels >=
-                            scrollInfo.metrics.maxScrollExtent - 200) {
-                      controller.loadMoreOrders();
-                    }
-                    return true;
-                  },
-                  child: ListView.builder(
-                    padding: EdgeInsets.all(16),
-                    itemCount: controller.filteredOrders.length +
-                        (controller.isLoadingMore.value ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index >= controller.filteredOrders.length) {
-                        return Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      final order = controller.filteredOrders[index];
-                      return _buildOrderCard(order);
-                    },
-                  ),
-                ),
-              ),
+                      onRefresh: () async => controller.fetchOrders(reset: true),
+                      child: controller.filteredOrders.isEmpty
+                          ? _buildEmptyState()
+                          : NotificationListener<ScrollNotification>(
+                              onNotification: (ScrollNotification scrollInfo) {
+                                if (!controller.isLoadingMore.value &&
+                                    scrollInfo.metrics.pixels >=
+                                        scrollInfo.metrics.maxScrollExtent - 200) {
+                                  controller.loadMoreOrders();
+                                }
+                                return true;
+                              },
+                              child: ListView.builder(
+                                padding: EdgeInsets.all(16),
+                                itemCount: controller.filteredOrders.length +
+                                    (controller.isLoadingMore.value ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index >= controller.filteredOrders.length) {
+                                    return Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+                                  final order = controller.filteredOrders[index];
+                                  return _buildOrderCard(order);
+                                },
+                              ),
+                            ),
+                    ),
             ),
           ),
         ],
@@ -99,14 +99,13 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
       // Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: 1, // Orders is index 1
+        currentIndex: 1,
         onTap: (index) {
           switch (index) {
             case 0:
               Get.offNamed(Routes.VENDERS_DASHBOARD);
               break;
             case 1:
-            // Already on orders
               break;
             case 2:
               Get.offNamed(Routes.VENDORS_PORDUCTS);
@@ -117,22 +116,10 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Orders',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Products',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag), label: 'Orders'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Products'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -158,7 +145,7 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
         ],
       ),
       child: Obx(
-            () {
+        () {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -245,6 +232,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                     return Colors.orange;
                   case 'confirmed':
                     return Colors.green;
+                  case 'overdue':
+                    return Colors.orange.shade700;
                   case 'cancelled':
                     return Colors.red;
                   default:
@@ -254,7 +243,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
 
               String getDisplayName() {
                 if (filter == 'all') return 'All';
-                return filter.substring(0, 1).toUpperCase() + filter.substring(1);
+                return filter.substring(0, 1).toUpperCase() +
+                    filter.substring(1);
               }
 
               return Container(
@@ -264,7 +254,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                     getDisplayName(),
                     style: TextStyle(
                       color: isSelected ? Colors.white : getColor(),
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   selected: isSelected,
@@ -275,7 +266,9 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                     side: BorderSide(
-                      color: isSelected ? getColor() : getColor().withOpacity(0.3),
+                      color: isSelected
+                          ? getColor()
+                          : getColor().withOpacity(0.3),
                       width: 1.5,
                     ),
                   ),
@@ -290,16 +283,12 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
   }
 
   Widget _buildOrderCard(OrderModel order) {
-    // Get customer name from shipping address
     final customerName = order.shippingAddress?.contactPerson ?? 'Customer';
-    final location = order.shippingAddress != null
-        ? '${order.shippingAddress!.city}, ${order.shippingAddress!.state}'
-        : 'Location not specified';
 
-    // Calculate total items
-    final totalItems = order.items.fold<int>(0, (sum, item) => sum + item.quantity);
+    // Total items = quantity + addon for all items
+    final totalItems = order.items
+        .fold<int>(0, (sum, item) => sum + item.quantity + item.addon);
 
-    // Get first item for preview
     final firstItem = order.items.isNotEmpty ? order.items.first : null;
 
     return Card(
@@ -317,14 +306,50 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── REFERRAL NOTE (above order number) ──────────────────────
+              if (order.referralNote != null &&
+                  order.referralNote!.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: Colors.amber.shade300, width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sticky_note_2_outlined,
+                          size: 14, color: Colors.amber.shade700),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          order.referralNote!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.amber.shade800,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 10),
+              ],
+
               // Header Row
               Row(
                 children: [
-                  // Order Icon
                   Container(
                     padding: EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(order.orderStatus).withOpacity(0.1),
+                      color: _getStatusColor(order.orderStatus)
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -334,8 +359,6 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                     ),
                   ),
                   SizedBox(width: 12),
-
-                  // Order Number and Customer
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +376,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                         SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                            Icon(Icons.person_outline,
+                                size: 14, color: Colors.grey),
                             SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -371,8 +395,6 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                       ],
                     ),
                   ),
-
-                  // Status Chip
                   _buildStatusChip(order.orderStatus),
                 ],
               ),
@@ -388,11 +410,11 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                 ),
                 child: Row(
                   children: [
-                    // Date
                     Expanded(
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade600),
+                          Icon(Icons.calendar_today,
+                              size: 14, color: Colors.grey.shade600),
                           SizedBox(width: 6),
                           Text(
                             _formatDate(order.createdAt),
@@ -405,8 +427,6 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                         ],
                       ),
                     ),
-
-                    // Payment Method
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -437,7 +457,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: _getPaymentStatusColor(order.paymentStatus),
+                                  color: _getPaymentStatusColor(
+                                      order.paymentStatus),
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -455,9 +476,6 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                         ],
                       ),
                     ),
-
-                    // Payment Status
-
                   ],
                 ),
               ),
@@ -467,7 +485,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                 SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                    Icon(Icons.location_on,
+                        size: 14, color: Colors.grey.shade600),
                     SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -488,91 +507,230 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
               if (firstItem != null) ...[
                 SizedBox(height: 12),
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Product Image
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          color: Colors.grey.shade200,
-                          child: firstItem.vendorProduct?.product?.images.isNotEmpty ?? false
-                              ? Image.network(
-                            firstItem.vendorProduct!.product!.images.first.imageUrl,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.image_not_supported,
-                              size: 20,
-                              color: Colors.grey,
+                      Row(
+                        children: [
+                          // Product Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              color: Colors.grey.shade200,
+                              child: firstItem.vendorProduct?.product?.images
+                                          .isNotEmpty ??
+                                      false
+                                  ? Image.network(
+                                      firstItem.vendorProduct!.product!.images
+                                          .first.imageUrl,
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Icon(
+                                        Icons.image_not_supported,
+                                        size: 20,
+                                        color: Colors.grey,
+                                      ),
+                                    )
+                                  : Icon(Icons.image,
+                                      size: 20, color: Colors.grey),
                             ),
-                          )
-                              : Icon(Icons.image, size: 20, color: Colors.grey),
-                        ),
-                      ),
-                      SizedBox(width: 8),
+                          ),
+                          SizedBox(width: 10),
 
-                      // Product Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              firstItem.productName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          // Product Details
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  firstItem.productName,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 3),
+
+                                // ── QTY + ADDON ──────────────────────────
+                                Row(
+                                  children: [
+                                    Icon(Icons.shopping_cart_outlined,
+                                        size: 12,
+                                        color: Colors.blue.shade600),
+                                    SizedBox(width: 3),
+                                    Text(
+                                      firstItem.addon > 0
+                                          ? 'Qty: ${firstItem.quantity}+${firstItem.addon}'
+                                          : 'Qty: ${firstItem.quantity}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '× ₹${firstItem.unitPrice.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 3),
+
+                                // ── MRP + DISCOUNT RANGE ─────────────────
+                                Row(
+                                  children: [
+                                    Text(
+                                      'MRP: ₹${firstItem.mrpPrice.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (firstItem.discountMin > 0 ||
+                                        firstItem.discountMax > 0) ...[
+                                      SizedBox(width: 6),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                              color: Colors.green.shade200),
+                                        ),
+                                        child: Text(
+                                          '${firstItem.discountMin.toStringAsFixed(0)}%-${firstItem.discountMax.toStringAsFixed(0)}%',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.green.shade700,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+
+                                if (firstItem.vendorProduct?.product
+                                        ?.genericName !=
+                                    null) ...[
+                                  SizedBox(height: 2),
+                                  Text(
+                                    firstItem
+                                        .vendorProduct!.product!.genericName,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Qty: ${firstItem.quantity} × ₹${firstItem.unitPrice.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
+                          ),
+
+                          // More items indicator
+                          if (order.items.length > 1)
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                            if (firstItem.vendorProduct?.product?.genericName != null)
-                              Text(
-                                firstItem.vendorProduct!.product!.genericName,
+                              child: Text(
+                                '+${order.items.length - 1}',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey.shade500,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
 
-                      // More items indicator
-                      if (totalItems > 1)
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '+${totalItems - 1}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
+                      // ── ALL ITEMS (2nd+ items rows) ──────────────────────
+                      if (order.items.length > 1) ...[
+                        SizedBox(height: 8),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        SizedBox(height: 6),
+                        ...order.items.skip(1).map((item) => Padding(
+                              padding: EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.productName,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    item.addon > 0
+                                        ? '${item.quantity}+${item.addon}'
+                                        : '${item.quantity}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.blue.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '× ₹${item.unitPrice.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'MRP:₹${item.mrpPrice.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                  if (item.discountMin > 0 ||
+                                      item.discountMax > 0) ...[
+                                    SizedBox(width: 4),
+                                    Text(
+                                      '${item.discountMin.toStringAsFixed(0)}%-${item.discountMax.toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            )),
+                      ],
                     ],
                   ),
                 ),
@@ -584,18 +742,19 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Items count and GST
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.inventory_2, size: 14, color: Colors.blue.shade700),
+                            Icon(Icons.inventory_2,
+                                size: 14, color: Colors.blue.shade700),
                             SizedBox(width: 4),
                             Text(
                               '$totalItems ${totalItems == 1 ? 'item' : 'items'}',
@@ -611,7 +770,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                       if (order.gstAmount > 0) ...[
                         SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.purple.shade50,
                             borderRadius: BorderRadius.circular(20),
@@ -628,8 +788,6 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                       ],
                     ],
                   ),
-
-                  // Amount
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -655,36 +813,64 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                 ],
               ),
 
-              // Action Buttons based on status
+              // ── ACTION BUTTONS ─────────────────────────────────────────
               if (order.orderStatus.toLowerCase() == 'placed') ...[
                 SizedBox(height: 12),
                 Row(
                   children: [
+                    // Accept
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => controller.acceptOrder(order.id.toString()),
+                        onPressed: () =>
+                            controller.acceptOrder(order.id.toString()),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text('Accept'),
+                        child: Text('Accept',
+                            style: TextStyle(fontSize: 13)),
                       ),
                     ),
-                    SizedBox(width: 8),
+                    SizedBox(width: 6),
+
+                    // Overdue — calls separate overdueOrder method
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            controller.overdueOrder(order.id),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade700,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text('Overdue',
+                            style: TextStyle(fontSize: 13)),
+                      ),
+                    ),
+                    SizedBox(width: 6),
+
+                    // Reject
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => controller.rejectOrder(order.id.toString()),
+                        onPressed: () =>
+                            controller.rejectOrder(order.id.toString()),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: BorderSide(color: Colors.red),
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text('Reject'),
+                        child: Text('Reject',
+                            style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
@@ -695,23 +881,10 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                 SizedBox(height: 12),
                 Row(
                   children: [
-                    // Expanded(
-                    //   child: ElevatedButton(
-                    //     onPressed: () => controller.markAsDispatched(order.id.toString()),
-                    //     style: ElevatedButton.styleFrom(
-                    //       backgroundColor: Colors.blue,
-                    //       foregroundColor: Colors.white,
-                    //       shape: RoundedRectangleBorder(
-                    //         borderRadius: BorderRadius.circular(8),
-                    //       ),
-                    //     ),
-                    //     child: Text('Mark as Dispatched'),
-                    //   ),
-                    // ),
-                    // SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => controller.generateInvoice(order.id),
+                        onPressed: () =>
+                            controller.generateInvoice(order.id),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.purple,
                           side: BorderSide(color: Colors.purple),
@@ -737,7 +910,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 14, color: Colors.red.shade700),
+                      Icon(Icons.info_outline,
+                          size: 14, color: Colors.red.shade700),
                       SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -773,6 +947,10 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
       case 'confirmed':
         color = Colors.green;
         icon = Icons.check_circle;
+        break;
+      case 'overdue':
+        color = Colors.orange.shade700;
+        icon = Icons.warning_amber_rounded;
         break;
       case 'cancelled':
         color = Colors.red;
@@ -855,7 +1033,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
 
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           padding: EdgeInsets.all(20),
           child: Column(
@@ -907,7 +1086,7 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
     );
   }
 
-  // Helper Methods
+  // ── Helper Methods ─────────────────────────────────────────────────────────
   String _formatDate(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime).inDays;
@@ -927,6 +1106,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
         return Colors.orange;
       case 'confirmed':
         return Colors.green;
+      case 'overdue':
+        return Colors.orange.shade700;
       case 'cancelled':
         return Colors.red;
       default:
@@ -953,6 +1134,8 @@ class VendorsOrdersView extends GetView<VendorsOrdersController> {
         return Icons.access_time;
       case 'confirmed':
         return Icons.check_circle;
+      case 'overdue':
+        return Icons.warning_amber_rounded;
       case 'cancelled':
         return Icons.cancel;
       default:

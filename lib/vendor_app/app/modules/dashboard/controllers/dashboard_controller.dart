@@ -91,6 +91,7 @@ class DashboardController extends GetxController {
       final uri = Uri.parse('${ApiEndpoints.baseUrl}/vendor-dashboard/stats')
           .replace(queryParameters: {'vendor_id': vendorId.value.toString()});
 
+      print('Url called===>: $uri');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
@@ -140,7 +141,7 @@ class DashboardController extends GetxController {
             'page': currentPage.value.toString(),
             'per_page': perPage.value.toString(),
           });
-
+print('pending orders url: $uri');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
@@ -178,51 +179,49 @@ class DashboardController extends GetxController {
   }
 
   Future<void> updateOrderStatus(int orderId, String status,
-      {String? notes}) async {
-    try {
-      final response = await http.post(
-        Uri.parse(
-            '${ApiEndpoints.baseUrl}/vendor-orders/update-status/$orderId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'status': status,
-          'notes': notes ?? 'Order $status by vendor',
-          'changed_by': vendorId.value,
-        }),
-      );
+    {String? notes}) async {
+  try {
+    final body = {
+      'status': status,
+      'notes': notes ?? 'Order $status by vendor',
+      'changed_by': vendorId.value,
+    };
 
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        if (jsonData['status'] == true) {
-          Get.snackbar(
-            'Success',
-            'Order $status successfully',
-            backgroundColor: Colors.green.shade100,
-            colorText: Colors.green.shade800,
-            snackPosition: SnackPosition.BOTTOM,
-          );
+    // ✅ PRINT REQUEST BODY
+    print('📤 API REQUEST BODY: ${json.encode(body)}');
 
-          // Refresh data
-          await fetchStats();
-          await fetchPendingOrders(reset: true);
-        }
+    final response = await http.post(
+      Uri.parse(
+          '${ApiEndpoints.baseUrl}/vendor-orders/update-status/$orderId'),
+                                  
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    );
+    print('Url called: ${ApiEndpoints.baseUrl}/vendor-orders/update-status/$orderId');
+    // ✅ PRINT RESPONSE
+    print('📥 API RESPONSE: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      if (jsonData['status'] == true) {
+        Get.snackbar(
+          'Success',
+          'Order $status successfully',
+        );
+
+        await fetchStats();
+        await fetchPendingOrders(reset: true);
       }
-    } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to update order: $e',
-        backgroundColor: Colors.red.shade100,
-        colorText: Colors.red.shade800,
-        snackPosition: SnackPosition.BOTTOM,
-      );
     }
+  } catch (e) {
+    print('❌ ERROR: $e');
   }
-
-  Future<void> cancelOrder(int orderId, String reason) async {
+}  Future<void> cancelOrder(int orderId, String reason) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiEndpoints.baseUrl}/vendor-orders/cancel/$orderId'),
         headers: {'Content-Type': 'application/json'},
+        
         body: json.encode({
           'reason': reason,
           'cancelled_by': vendorId.value,
