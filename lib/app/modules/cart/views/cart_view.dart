@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import '../../../data/providers/api_endpoints.dart';
+import '../../../global_widgets/payment_method_dialog.dart';
 import '../controllers/cart_controller.dart';
 
 class CartView extends GetView<CartController> {
@@ -33,11 +34,7 @@ class CartView extends GetView<CartController> {
                       children: [
                         const SizedBox(height: 16),
                         _buildVendorGroupedItems(),
-                        const SizedBox(height: 16),
-                        _buildReferredByField(),
-                        const SizedBox(height: 100),
-                        _buildPriceSummary(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 100), // Bottom padding for scrolling
                       ],
                     ),
                   ),
@@ -47,10 +44,6 @@ class CartView extends GetView<CartController> {
           ],
         ),
       ),
-      bottomNavigationBar: Obx(() =>
-          !controller.isLoading.value && controller.cartItems.isNotEmpty
-              ? _buildCheckoutButton()
-              : const SizedBox()),
     );
   }
 
@@ -85,21 +78,21 @@ class CartView extends GetView<CartController> {
           ),
           const Spacer(),
           Obx(() => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
-                ),
-                child: Text(
-                  '${controller.cartItems.length} ${controller.cartItems.length == 1 ? 'item' : 'items'}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
+            ),
+            child: Text(
+              '${controller.cartItems.length} ${controller.cartItems.length == 1 ? 'item' : 'items'}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )),
         ],
       ),
     );
@@ -284,6 +277,16 @@ class CartView extends GetView<CartController> {
 
   Widget _buildVendorCard({required String vendorName, required List<CartItemModel> items}) {
     final double vendorSubtotal = items.fold(0.0, (sum, i) => sum + (i.price * i.quantity));
+    final double vendorGst = items.fold(0.0, (sum, i) {
+      final itemTotal = i.price * i.quantity;
+      final itemGst = itemTotal * (i.gstPercentage / 100);
+      return sum + itemGst;
+    });
+    final double vendorTotal = vendorSubtotal + vendorGst;
+
+    // Get discount for this vendor (if any - you might need to track discounts per vendor)
+    final double vendorDiscount = 0.0; // This would need to be tracked per vendor in your controller
+    final double vendorFinalTotal = vendorTotal - vendorDiscount;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -359,37 +362,167 @@ class CartView extends GetView<CartController> {
             itemBuilder: (context, index) => _buildCartItemRow(items[index]),
           ),
 
-          // ── Vendor Subtotal Footer ─────────────────────────────────────────
+          // ── Vendor Price Summary ─────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: _primaryDark.withOpacity(0.04),
+              border: Border(
+                top: BorderSide(color: _primaryDark.withOpacity(0.1)),
+                bottom: BorderSide(color: _primaryDark.withOpacity(0.1)),
+              ),
+            ),
+            child: Column(
+              children: [
+                _buildVendorPriceRow('Subtotal', vendorSubtotal),
+                const SizedBox(height: 8),
+                _buildVendorPriceRow('GST', vendorGst),
+                if (vendorDiscount > 0) ...[
+                  const SizedBox(height: 8),
+                  _buildVendorPriceRow('Discount', vendorDiscount, isDiscount: true),
+                ],
+                const SizedBox(height: 12),
+                Container(height: 1, color: _primaryDark.withOpacity(0.1)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryDark,
+                      ),
+                    ),
+                    Text(
+                      '₹${vendorFinalTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ── Vendor Checkout Button ────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(18),
                 bottomRight: Radius.circular(18),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Vendor Subtotal',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _primaryDark.withOpacity(0.7),
+            child: Obx(() => ElevatedButton(
+              onPressed: controller.isCheckingOut.value
+                  ? null
+                  : () => _checkoutVendor(vendorName, items, vendorFinalTotal),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryLight,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: controller.isCheckingOut.value
+                  ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+                  : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.shopping_bag_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Checkout',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
-                ),
-                Text(
-                  '₹${vendorSubtotal.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '₹${vendorFinalTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            )),
           ),
         ],
       ),
     );
+  }
+
+  // ─── Vendor Price Row Helper ─────────────────────────────────────────────────
+
+  Widget _buildVendorPriceRow(String label, double amount, {bool isDiscount = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: _primaryDark.withOpacity(0.7),
+          ),
+        ),
+        Text(
+          '${isDiscount ? '-' : ''}₹${amount.abs().toStringAsFixed(2)}',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDiscount ? Colors.orange : _primaryDark,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Checkout Vendor Method ──────────────────────────────────────────────────
+
+  Future<void> _checkoutVendor(String vendorName, List<CartItemModel> items, double total) async {
+    if (items.isEmpty) return;
+
+    // Show payment method dialog for this vendor
+    final result = await Get.dialog<String>(
+      PaymentMethodDialog(),
+    );
+
+    if (result != null) {
+      // Get referral text
+      final String referralText = controller.referredByController.text.trim();
+
+      // Navigate to checkout with vendor-specific items
+      Get.toNamed('/checkout', arguments: {
+        'cartItems': items,
+        'vendorName': vendorName,
+        'subtotal': items.fold(0.0, (sum, i) => sum + (i.price * i.quantity)),
+        'gstTotal': items.fold(0.0, (sum, i) {
+          final itemTotal = i.price * i.quantity;
+          final itemGst = itemTotal * (i.gstPercentage / 100);
+          return sum + itemGst;
+        }),
+        'total': total,
+        'paymentMethod': result,
+        'referredBy': referralText,
+        'isVendorSpecific': true,
+      });
+    }
   }
 
   // ─── Single Item Row ──────────────────────────────────────────────────────────
@@ -415,11 +548,11 @@ class CartView extends GetView<CartController> {
             child: Center(
               child: item.image.isNotEmpty
                   ? Image.network(
-                      _getFullImageUrl(item.image),
-                      height: 52,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.medical_services, size: 36, color: _primaryDark),
-                    )
+                _getFullImageUrl(item.image),
+                height: 52,
+                errorBuilder: (_, __, ___) =>
+                const Icon(Icons.medical_services, size: 36, color: _primaryDark),
+              )
                   : const Icon(Icons.medical_services, size: 36, color: _primaryDark),
             ),
           ),
@@ -434,7 +567,7 @@ class CartView extends GetView<CartController> {
                 GestureDetector(
                   onTap: () {
                     Get.toNamed('/product-details/${item.productId}');
-                    },
+                  },
                   child: Text(
                     item.name,
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _primaryDark),
@@ -460,54 +593,49 @@ class CartView extends GetView<CartController> {
                 const SizedBox(height: 6),
 
                 // ── Selling Price + MRP strikethrough ──────────────────────
-              Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text(
-      'PTR ₹${item.price.toStringAsFixed(2)}',
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.bold,
-        color: _primaryLight,
-      ),
-    ),
-    const SizedBox(height: 2),
-       // ── Discount Min – Max badge ────────────────────────────────
-                if (item.discountMin > 0 || item.discountMax > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.orange.withOpacity(0.35)),
-                    ),
-                    child: Text(
-                      '${item.discountMin.toStringAsFixed(0)}% – ${item.discountMax.toStringAsFixed(0)}%',
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PTR ₹${item.price.toStringAsFixed(2)}',
                       style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.deepOrange,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryLight,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    // ── Discount Min – Max badge ────────────────────────────────
+                    if (item.discountMin > 0 || item.discountMax > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.orange.withOpacity(0.35)),
+                        ),
+                        child: Text(
+                          '${item.discountMin.toStringAsFixed(0)}% – ${item.discountMax.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 2),
+                    if (item.mrpPrice > 0)
+                      Text(
+                        'MRP ₹${item.mrpPrice.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 3),
 
-
-    const SizedBox(height: 2),
-
-    if (item.mrpPrice > 0)
-      Text(
-        'MRP ₹${item.mrpPrice.toStringAsFixed(0)}',
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.grey[500],
-          // ❌ lineThrough hata diya
-        ),
-      ),
-  ],
-),
-const SizedBox(height: 3),
-
-             
                 // GST
                 if (item.gstPercentage > 0) ...[
                   const SizedBox(height: 2),
@@ -516,9 +644,7 @@ const SizedBox(height: 3),
                     style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                   ),
                 ],
-
-                // Addon label (below price area)
-               ],
+              ],
             ),
           ),
           const SizedBox(width: 8),
@@ -560,67 +686,69 @@ const SizedBox(height: 3),
   }
 
   // ─── Inline Addon Box — same height as quantity control via IntrinsicHeight ───
-Widget _buildInlineAddonBox(CartItemModel item) {
-  final TextEditingController addonCtrl =
-      TextEditingController(text: item.addon ?? '');
+  Widget _buildInlineAddonBox(CartItemModel item) {
+    final TextEditingController addonCtrl =
+    TextEditingController(text: item.addon ?? '');
 
-  addonCtrl.selection =
-      TextSelection.fromPosition(TextPosition(offset: addonCtrl.text.length));
+    addonCtrl.selection =
+        TextSelection.fromPosition(TextPosition(offset: addonCtrl.text.length));
 
-  return SizedBox(
-    width: 36,
-    height: 40, // 🔥 yaha height control karo (40–52 best)
-    child: TextField(
-      controller: addonCtrl,
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        fontSize: 12, // thoda readable
-        fontWeight: FontWeight.w500,
-        color: _primaryDark,
+    return SizedBox(
+      width: 36,
+      height: 40, // 🔥 yaha height control karo (40–52 best)
+      child: TextField(
+        controller: addonCtrl,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 12, // thoda readable
+          fontWeight: FontWeight.w500,
+          color: _primaryDark,
+        ),
+        decoration: const InputDecoration(
+          isDense: false, // ❌ dense hata diya (important)
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 10, // 🔥 height yaha se aati hai
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+            borderSide: BorderSide(color: Colors.black, width: 1.2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+            borderSide: BorderSide(color: Colors.black, width: 1.2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+            borderSide: BorderSide(color: Colors.black, width: 1.5),
+          ),
+        ),
+        maxLines: 1,
+
+        onSubmitted: (val) async {
+          final trimmed = val.trim();
+          if (trimmed.isNotEmpty) {
+            await controller.addAddonToItem(item.id, trimmed);
+          } else {
+            await controller.removeAddonFromItem(item.id);
+          }
+          await controller.refreshCart();
+        },
+
+        onTapOutside: (_) async {
+          final trimmed = addonCtrl.text.trim();
+          if (trimmed.isNotEmpty) {
+            await controller.addAddonToItem(item.id, trimmed);
+          } else {
+            await controller.removeAddonFromItem(item.id);
+          }
+          await controller.refreshCart();
+        },
       ),
-      decoration: const InputDecoration(
-        isDense: false, // ❌ dense hata diya (important)
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: 10, // 🔥 height yaha se aati hai
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(6)),
-          borderSide: BorderSide(color: Colors.black, width: 1.2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(6)),
-          borderSide: BorderSide(color: Colors.black, width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(6)),
-          borderSide: BorderSide(color: Colors.black, width: 1.5),
-        ),
-      ),
-      maxLines: 1,
+    );
+  }
 
-      onSubmitted: (val) async {
-        final trimmed = val.trim();
-        if (trimmed.isNotEmpty) {
-          await controller.addAddonToItem(item.id, trimmed);
-        } else {
-          await controller.removeAddonFromItem(item.id);
-        }
-        await controller.refreshCart();
-      },
-
-      onTapOutside: (_) async {
-        final trimmed = addonCtrl.text.trim();
-        if (trimmed.isNotEmpty) {
-          await controller.addAddonToItem(item.id, trimmed);
-        } else {
-          await controller.removeAddonFromItem(item.id);
-        }
-        await controller.refreshCart();
-      },
-    ),
-  );
-}  // ─── Quantity Control (−  [editable field]  +) ────────────────────────────────
+  // ─── Quantity Control (−  [editable field]  +) ────────────────────────────────
 
   Widget _buildQuantityControl(CartItemModel item) {
     return StatefulBuilder(
@@ -720,147 +848,6 @@ Widget _buildInlineAddonBox(CartItemModel item) {
           ),
         );
       },
-    );
-  }
-
-  // ─── Price Summary ────────────────────────────────────────────────────────────
-
-  Widget _buildPriceSummary() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_primaryDark, _primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: _primaryDark.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'Price Summary',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          Obx(() => Column(
-                children: [
-                  _buildPriceRow('Subtotal', controller.subtotal),
-                  const SizedBox(height: 12),
-                  _buildPriceRow('GST', controller.gstTotal),
-                  if (controller.discount.value > 0) ...[
-                    const SizedBox(height: 12),
-                    _buildPriceRow('Discount', controller.discount.value, isDiscount: true),
-                  ],
-                  const SizedBox(height: 16),
-                  Container(height: 1, color: Colors.white.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      Text(
-                        '₹${controller.total.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(String label, double amount, {bool isDiscount = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9)),
-        ),
-        Text(
-          '${isDiscount ? '-' : ''}₹${amount.abs().toStringAsFixed(2)}',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDiscount ? Colors.yellowAccent : Colors.white,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── Checkout Button ──────────────────────────────────────────────────────────
-
-  Widget _buildCheckoutButton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: _primaryDark.withOpacity(0.1), blurRadius: 12, offset: const Offset(0, -2)),
-        ],
-      ),
-      child: SafeArea(
-        child: Obx(
-          () => Container(
-            decoration: BoxDecoration(
-              gradient: controller.isCheckingOut.value
-                  ? null
-                  : const LinearGradient(
-                      colors: [_primaryDark, _primaryLight],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              color: controller.isCheckingOut.value ? Colors.grey[300] : null,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: controller.isCheckingOut.value
-                  ? []
-                  : [BoxShadow(color: _primaryDark.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
-            ),
-            child: ElevatedButton(
-              onPressed: controller.isCheckingOut.value ? null : controller.checkout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                minimumSize: const Size(double.infinity, 0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: controller.isCheckingOut.value
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Proceed to Checkout',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '₹${controller.total.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

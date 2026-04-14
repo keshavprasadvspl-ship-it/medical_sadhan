@@ -18,10 +18,15 @@ class CompaniesListViewController extends GetxController {
   // Search
   final searchQuery = ''.obs;
 
-  // ADD THESE: Vendor filter properties
+  // Vendor filter properties
   final selectedVendorId = Rxn<int>();
   final selectedVendorName = ''.obs;
   final isVendorFiltered = false.obs;
+
+  // Category filter properties
+  final categories = <String>[].obs;
+  final selectedCategory = Rxn<String>();
+  final availableCategories = <String>[].obs;
 
   @override
   void onInit() {
@@ -52,17 +57,14 @@ class CompaniesListViewController extends GetxController {
     }
   }
 
-  // ADD THIS: Set vendor filter
   void setVendorFilter(int? vendorId, String? vendorName) {
     selectedVendorId.value = vendorId;
     selectedVendorName.value = vendorName ?? '';
     isVendorFiltered.value = vendorId != null;
 
-    // Load all companies (filtering happens when navigating to categories)
     loadCompanies();
   }
 
-  // MODIFY: Update the navigation method to pass vendor filter to categories
   void navigateToCompanyProducts(CompanyModel company) {
     print(
         "➡️ Navigating to categories for company: ${company.name} (ID: ${company.id})");
@@ -70,13 +72,12 @@ class CompaniesListViewController extends GetxController {
     Map<String, dynamic> arguments = {};
 
     if (isVendorFiltered.value) {
-      // If we came from a vendor, pass both vendor and company filters
       arguments = {
         'vendorId': selectedVendorId.value,
         'vendorName': selectedVendorName.value,
         'companyId': company.id,
         'companyName': company.name,
-        'companyData':  company.toJson(),
+        'companyData': company.toJson(),
         'filterType': 'vendor_company',
       };
       print("   With vendor filter: ${selectedVendorName.value}");
@@ -84,7 +85,7 @@ class CompaniesListViewController extends GetxController {
       arguments = {
         'companyId': company.id,
         'companyName': company.name,
-        'companyData':  company.toJson(),
+        'companyData': company.toJson(),
         'filterType': 'company',
       };
     }
@@ -95,9 +96,8 @@ class CompaniesListViewController extends GetxController {
     );
   }
 
-  // ... rest of your existing methods (loadCompanies, applyFilters, etc.) remain exactly the same ...
-
   // Load companies from API
+// Load companies from API
   Future<void> loadCompanies({bool refresh = false}) async {
     try {
       if (refresh) {
@@ -110,8 +110,7 @@ class CompaniesListViewController extends GetxController {
       print("=" * 50);
       print("LOADING COMPANIES - ${refresh ? 'REFRESH' : 'INITIAL'}");
       if (isVendorFiltered.value) {
-        print(
-            "VENDOR FILTER: ${selectedVendorName.value} (ID: ${selectedVendorId.value})");
+        print("VENDOR FILTER: ${selectedVendorName.value} (ID: ${selectedVendorId.value})");
       }
       print("=" * 50);
 
@@ -130,14 +129,39 @@ class CompaniesListViewController extends GetxController {
         int successCount = 0;
         int errorCount = 0;
 
+        // Set to collect unique categories
+        final categorySet = <String>{};
+
+        // Debug: Track companies with categories
+        int companiesWithCategories = 0;
+        int totalCategoriesFound = 0;
+
         for (var json in response) {
           print("Processing company JSON: $json");
           try {
             final company = CompanyModel.fromJson(json);
             companyList.add(company);
             successCount++;
-            print(
-                "✅ Successfully parsed company: ${company.name} (ID: ${company.id})");
+
+            // Debug: Print categories for this company
+            print("Company: ${company.name}");
+            print("  Categories count: ${company.categories.length}");
+            print("  Categories found: ${company.categories.map((c) => c.name).join(', ')}");
+
+            // FIX: Properly collect categories
+            if (company.categories.isNotEmpty) {
+              companiesWithCategories++; // Increment counter
+              for (var category in company.categories) {
+                if (category.name.trim().isNotEmpty) {
+                  categorySet.add(category.name.trim());
+                  totalCategoriesFound++; // Increment total categories counter
+                }
+              }
+            } else {
+              print("  No categories found for this company");
+            }
+
+            print("✅ Successfully parsed company: ${company.name} (ID: ${company.id})");
           } catch (e) {
             errorCount++;
             print("❌ Error parsing company: $e");
@@ -149,6 +173,21 @@ class CompaniesListViewController extends GetxController {
         print("   Total companies: ${response.length}");
         print("   Successfully parsed: $successCount");
         print("   Failed to parse: $errorCount");
+        print("   Companies with categories: $companiesWithCategories");
+        print("   Total categories found: $totalCategoriesFound");
+        print("   Unique categories in set: ${categorySet.length}");
+
+        // Update available categories
+        final categoryList = categorySet.toList()..sort();
+        availableCategories.value = categoryList;
+        print("📋 Available categories (${availableCategories.length}):");
+        for (var cat in availableCategories) {
+          print("   - $cat");
+        }
+
+        if (availableCategories.isEmpty) {
+          print("⚠️ WARNING: No categories found in any company!");
+        }
 
         if (refresh) {
           companies.value = companyList;
@@ -156,8 +195,7 @@ class CompaniesListViewController extends GetxController {
           companies.assignAll(companyList);
         }
 
-        print(
-            "📦 Companies observable length after assign: ${companies.length}");
+        print("📦 Companies observable length after assign: ${companies.length}");
         applyFilters();
       } else {
         print("⚠️ Response is empty");
@@ -172,15 +210,18 @@ class CompaniesListViewController extends GetxController {
       isLoading.value = false;
       print("✅ Loading completed. Companies count: ${companies.length}");
       print("   Filtered companies count: ${filteredCompanies.length}");
+      print("   Available categories count: ${availableCategories.length}");
     }
   }
 
-  // Apply search filter
+  // Apply search and category filters
   void applyFilters() {
     print("-" * 30);
     print("🔍 APPLYING FILTERS");
     print("   Companies list length: ${companies.length}");
     print("   Search query: '${searchQuery.value}'");
+    print("   Selected category: '${selectedCategory.value}'");
+    print("   Available categories: ${availableCategories.length}");
 
     if (companies.isEmpty) {
       print("   Companies list is empty, no filters applied");
@@ -189,16 +230,27 @@ class CompaniesListViewController extends GetxController {
     }
 
     var results = companies.where((company) {
+      // Search filter
       final name = company.name.toLowerCase();
       final matchesSearch = searchQuery.value.isEmpty ||
           name.contains(searchQuery.value.toLowerCase());
-      final isActive = company.isActive;
 
-      if (matchesSearch && isActive) {
-        print("   ✅ Including company: ${company.name}");
+      // Category filter
+      bool matchesCategory = true;
+      if (selectedCategory.value != null && selectedCategory.value!.isNotEmpty) {
+        matchesCategory = company.categories.any(
+                (category) =>
+            category.name.trim().toUpperCase() ==
+                selectedCategory.value?.trim().toUpperCase()
+        );
+        if (matchesCategory) {
+          print("   Company '${company.name}' matches category '${selectedCategory.value}'");
+        }
       }
 
-      return matchesSearch && isActive;
+      final isActive = company.isActive;
+
+      return matchesSearch && matchesCategory && isActive;
     }).toList();
 
     print("   Filtered companies count: ${results.length}");
@@ -217,6 +269,20 @@ class CompaniesListViewController extends GetxController {
   void clearSearch() {
     print("🧹 Clearing search");
     searchQuery.value = '';
+    applyFilters();
+  }
+
+  // Update selected category
+  void updateSelectedCategory(String? category) {
+    print("🏷️ Selected category updated to: '$category'");
+    selectedCategory.value = category;
+    applyFilters();
+  }
+
+  // Clear category filter
+  void clearCategoryFilter() {
+    print("🧹 Clearing category filter");
+    selectedCategory.value = null;
     applyFilters();
   }
 

@@ -28,6 +28,8 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
                           _buildSearchBar(),
+                          const SizedBox(height: 12),
+                          _buildCategoryChips(), // ADD THIS: Category chips row
                           const SizedBox(height: 20),
                           _buildHeader(),
                           const SizedBox(height: 16),
@@ -45,8 +47,6 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
     );
   }
 
-
-// Update the _buildAppBar method to show vendor context
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -170,6 +170,116 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
     );
   }
 
+  // ADD THIS: Category chips row
+  Widget _buildCategoryChips() {
+    return Obx(() {
+      if (controller.availableCategories.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Filter by Category',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111261),
+                ),
+              ),
+              Obx(() {
+                if (controller.selectedCategory.value != null) {
+                  return GestureDetector(
+                    onTap: controller.clearCategoryFilter,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Clear',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 45,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: controller.availableCategories.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final category = controller.availableCategories[index];
+                final isSelected = controller.selectedCategory.value == category;
+
+                return _buildCategoryChip(
+                  category: category,
+                  isSelected: isSelected,
+                  onTap: () => controller.updateSelectedCategory(
+                      isSelected ? null : category
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildCategoryChip({
+    required String category,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF0B630B)
+              : Colors.grey[100],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF0B630B)
+                : Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          category,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : Colors.grey[700],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Obx(() {
       if (controller.isLoading.value && controller.companies.isEmpty) {
@@ -179,14 +289,45 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'All Companies',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111261),
-            ),
-          ),
+          Obx(() {
+            if (controller.selectedCategory.value != null) {
+              return Row(
+                children: [
+                  const Text(
+                    'Filtered by: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0B630B).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      controller.selectedCategory.value!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0B630B),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const Text(
+              'All Companies',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF111261),
+              ),
+            );
+          }),
           Obx(() => Text(
             '${controller.filteredCompanies.length} results',
             style: TextStyle(
@@ -272,76 +413,9 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
                         color: Colors.grey[500],
                       ),
                     );
-                  } else {
-                    return const SizedBox.shrink();
-                  }
-                }),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: controller.refreshCompanies,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0B630B),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      if (controller.filteredCompanies.isEmpty) {
-        return SliverFillRemaining(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.business_outlined,
-                  size: 64,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  controller.companies.isEmpty
-                      ? 'No companies found'
-                      : 'No matching companies',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Obx(() {
-                  if (controller.companies.isEmpty) {
-                    return Column(
-                      children: [
-                        Text(
-                          'Pull down to refresh',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                        if (controller.errorMessage.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              'Error: ${controller.errorMessage.value}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.red,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                      ],
-                    );
-                  } else if (controller.searchQuery.value.isNotEmpty) {
+                  } else if (controller.selectedCategory.value != null) {
                     return Text(
-                      'No companies match "${controller.searchQuery.value}"',
+                      'No companies in category "${controller.selectedCategory.value}"',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
@@ -419,9 +493,9 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: company.logoUrl.isNotEmpty
+                  child: company.imageUrl.isNotEmpty
                       ? Image.network(
-                    company.logoUrl,
+                    company.imageUrl,
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
@@ -449,24 +523,32 @@ class CompaniesListView extends GetView<CompaniesListViewController> {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              // const SizedBox(height: 4),
-              //
-              // // Company Type
-              // Container(
-              //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              //   decoration: BoxDecoration(
-              //     color: const Color(0xFF0B630B).withOpacity(0.1),
-              //     borderRadius: BorderRadius.circular(12),
-              //   ),
-              //   child: Text(
-              //     controller.getCompanyTypeDisplay(company.type),
-              //     style: const TextStyle(
-              //       fontSize: 10,
-              //       color: Color(0xFF0B630B),
-              //       fontWeight: FontWeight.w500,
-              //     ),
-              //   ),
-              // ),
+              // Show category chip if company has categories
+              if (company.categories.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: company.categories.map((category) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B630B).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        category.name,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Color(0xFF0B630B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
 
               const Spacer(),
 

@@ -10,13 +10,14 @@ class CheckoutController extends GetxController {
   final ApiService _apiService = Get.find<ApiService>();
   final StorageService _storageService = Get.find<StorageService>();
   final CartController _cartController = Get.find<CartController>();
-  final referredBy = RxString('');
+
   // Observable variables
   final addresses = <AddressModel>[].obs;
   final selectedAddressId = Rxn<int>();
   final isLoading = true.obs;
   final isPlacingOrder = false.obs;
   final selectedPaymentMethod = 'cod'.obs;
+  final referredBy = RxString('');
 
   // Order summary data from cart
   late List<CartItemModel> cartItems;
@@ -26,20 +27,28 @@ class CheckoutController extends GetxController {
   late double total;
   late String? appliedPromoCode;
 
+  // Vendor-specific checkout flag
+  bool isVendorSpecific = false;
+  String? vendorName;
+
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-     referredBy.value = args?['referredBy'] ?? '';
+
     if (args != null) {
       cartItems = args['cartItems'];
       subtotal = args['subtotal'];
-      deliveryFee = args['deliveryFee'];
-      discount = args['discount'];
+      deliveryFee = args['deliveryFee'] ?? 0.0;
+      discount = args['discount'] ?? 0.0;
       total = args['total'];
       appliedPromoCode = args['promoCode'];
       selectedPaymentMethod.value = args['paymentMethod'] ?? 'cod';
+      referredBy.value = args['referredBy'] ?? '';
+      isVendorSpecific = args['isVendorSpecific'] ?? false;
+      vendorName = args['vendorName'];
     }
+
     loadAddresses();
   }
 
@@ -241,129 +250,157 @@ class CheckoutController extends GetxController {
     }
   }
 
-// Place order
- Future<void> placeOrder() async {
-  if (selectedAddressId.value == null) {
-    Get.snackbar('Error', 'Please select a delivery address');
-    return;
-  }
-
-  isPlacingOrder.value = true;
-
-  try {
-    final user = await _storageService.getUser();
-    final token = await _storageService.getToken();
-
-    if (user == null || token == null) {
-      throw Exception('User not logged in');
+  // Place order (updated for vendor-specific checkout)
+  Future<void> placeOrder() async {
+    if (selectedAddressId.value == null) {
+      Get.snackbar('Error', 'Please select a delivery address');
+      return;
     }
 
-    final int buyerId = user['id'];
-    final int addressId = selectedAddressId.value!;
+    isPlacingOrder.value = true;
 
-    // 🔥 Referral safe value
-    final String referralValue =
-        referredBy.value.trim().isEmpty ? '' : referredBy.value.trim();
+    try {
+      final user = await _storageService.getUser();
+      final token = await _storageService.getToken();
 
-    print("🔥 Referral Value: $referralValue");
+      if (user == null || token == null) {
+        throw Exception('User not logged in');
+      }
 
-    // 🔹 Group items by vendor
-    final Map<int, List<Map<String, dynamic>>> vendorGroups = {};
+      final int buyerId = user['id'];
+      final int addressId = selectedAddressId.value!;
 
-    for (var item in cartItems) {
-      vendorGroups.putIfAbsent(item.vendorId, () => []);
+      // Referral safe value
+      final String referralValue =
+      referredBy.value.trim().isEmpty ? '' : referredBy.value.trim();
 
-      vendorGroups[item.vendorId]!.add({
-        'packing_id': item.packingId ?? 0,
-        'product_name': item.name,
-        'quantity': item.quantity,
-        'addon': item.addon ?? 0,
-        'price': item.price,
-        'gst_percentage': item.gstPercentage,
+      print("🔥 Referral Value: $referralValue");
+      print("🔥 Is Vendor Specific: $isVendorSpecific");
+      print("🔥 Vendor Name: $vendorName");
+
+      List<Map<String, dynamic>> allOrderResults = [];
+
+      if (isVendorSpecific && vendorName != null) {
+        // Vendor-specific checkout - place order for single vendor
+        final int vendorId = cartItems.first.vendorId;
+
+        final items = cartItems.map((item) => {
+          'packing_id': item.packingId ?? 0,
+          'product_name': item.name,
+          'quantity': item.quantity,
+          'addon': int.tryParse(item.addon ?? '0') ?? 0,
+          'price': item.price,
+          'gst_percentage': item.gstPercentage,
+        }).toList();
+
+        print("🚀 Placing order for Vendor: $vendorId ($vendorName)");
+
+        final result = await _apiService.placeOrder(
+          buyerId: buyerId,
+          vendorId: vendorId,
+          shippingAddressId: addressId,
+          billingAddressId: addressId,
+          paymentMethod: selectedPaymentMethod.value,
+          items: items,
+          couponCode: (appliedPromoCode?.isEmpty ?? true) ? null : appliedPromoCode,
+          referredBy: referralValue.isEmpty ? null : referralValue,
+          token: token,
+        );
+
+        print("📦 API ORDER RESULT:");
+        print(result);
+
+        if (result['success'] != true) {
+          throw Exception('Failed to place order for vendor $vendorName');
+        }
+
+        allOrderResults.add(result);
+
+        // Remove only the items for this vendor from cart
+        await _removeVendorItemsFromCart(vendorId);
+
+      } else {
+        // Regular checkout - group items by vendor
+        final Map<int, List<Map<String, dynamic>>> vendorGroups = {};
+
+        for (var item in cartItems) {
+          vendorGroups.putIfAbsent(item.vendorId, () => []);
+          vendorGroups[item.vendorId]!.add({
+            'packing_id': item.packingId ?? 0,
+            'product_name': item.name,
+            'quantity': item.quantity,
+            'addon': int.tryParse(item.addon ?? '0') ?? 0,
+            'price': item.price,
+            'gst_percentage': item.gstPercentage,
+          });
+        }
+
+        // API call per vendor
+        for (var entry in vendorGroups.entries) {
+          print("🚀 Placing order for Vendor: ${entry.key}");
+
+          final result = await _apiService.placeOrder(
+            buyerId: buyerId,
+            vendorId: entry.key,
+            shippingAddressId: addressId,
+            billingAddressId: addressId,
+            paymentMethod: selectedPaymentMethod.value,
+            items: entry.value,
+            couponCode: (appliedPromoCode?.isEmpty ?? true) ? null : appliedPromoCode,
+            referredBy: referralValue.isEmpty ? null : referralValue,
+            token: token,
+          );
+
+          print("📦 API ORDER RESULT:");
+          print(result);
+
+          if (result['success'] != true) {
+            throw Exception('Failed to place order for vendor ${entry.key}');
+          }
+
+          allOrderResults.add(result);
+        }
+
+        // Clear entire cart for regular checkout
+        await _cartController.clearCart();
+      }
+
+      print("✅ FINAL ORDER RESULTS:");
+      print(allOrderResults);
+
+      // Navigate to success page
+      Get.offAllNamed('/order-success', arguments: {
+        'orderData': allOrderResults,
+        'isVendorSpecific': isVendorSpecific,
+        'vendorName': vendorName,
       });
-    }
 
-    List<Map<String, dynamic>> allOrderResults = [];
+    } catch (e) {
+      print('❌ Error placing order: $e');
 
-    // 🔹 API call per vendor
-    for (var entry in vendorGroups.entries) {
-      print("🚀 Placing order for Vendor: ${entry.key}");
-
-      final result = await _apiService.placeOrder(
-        buyerId: buyerId,
-        vendorId: entry.key,
-        shippingAddressId: addressId,
-        billingAddressId: addressId,
-        paymentMethod: selectedPaymentMethod.value,
-        items: entry.value,
-        couponCode: (appliedPromoCode?.isEmpty ?? true)
-            ? null
-            : appliedPromoCode,
-        referredBy: referralValue.isEmpty ? null : referralValue, // ✅ FIX
-        token: token,
+      Get.snackbar(
+        'Error',
+        'Failed to place order. Please try again.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
-
-      print("📦 API ORDER RESULT:");
-      print(result);
-
-      if (result['success'] != true) {
-        throw Exception(
-            'Failed to place order for vendor ${entry.key}');
-      }
-
-      allOrderResults.add(result);
+    } finally {
+      isPlacingOrder.value = false;
     }
-  
-    // 🔥 Clear cart
-    await _cartController.clearCart();
+  }
 
-    print("✅ FINAL ORDER RESULTS:");
-    print(allOrderResults);
+  // Helper method to remove items for a specific vendor from cart
+  Future<void> _removeVendorItemsFromCart(int vendorId) async {
+    final itemsToRemove = cartItems.where((item) => item.vendorId == vendorId).toList();
 
-    // 🔥 Navigate
-    Get.offAllNamed('/order-success', arguments: {
-      'orderData': allOrderResults,
-    });
+    for (var item in itemsToRemove) {
+      await _cartController.removeItem(item.id);
+    }
 
-  } catch (e) {
-    print('❌ Error placing order: $e');
-
-    Get.snackbar(
-      'Error',
-      'Failed to place order. Please try again.',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
-    );
-  } finally {
-    isPlacingOrder.value = false;
+    // Refresh cart count
+    await _cartController.refreshCart();
   }
 }
-}
-Map<String, dynamic> result = {
-  "success": true,
-  "message": "Order created successfully",
-  "data": {
-    "order_id": 101,
-    "order_number": "ORD-1708675300",
-    "buyer_id": 1,
-    "vendor_id": 2,
-    "payment_status": "pending",
-    "order_status": "placed",
-    "total_amount": 200.00,
-    "gst_amount": 10.00,
-    "final_amount": 210.00,
-    "items": [
-      {
-        "id": 1,
-        "product_name": "Paracetamol 500mg",
-        "quantity": 10,
-        "addon": 0,
-        "unit_price": 20.00,
-        "gst_percentage": 5,
-        "gst_amount": 10.00,
-        "total_price": 210.00
-      }
-    ]
-  }
-};
+
+// Note: The CartItemModel is imported from cart_controller.dart

@@ -53,6 +53,8 @@ import '../modules/notifications/views/notification_settings_view.dart';
 import '../modules/notifications/views/notifications_view.dart';
 import '../modules/offline/bindings/offline_binding.dart';
 import '../modules/offline/views/offline_view.dart';
+import '../modules/order_report/bindings/order_report_binding.dart';
+import '../modules/order_report/views/order_report_view.dart';
 import '../modules/order_success/bindings/order_success_binding.dart';
 import '../modules/order_success/views/order_success_view.dart';
 import '../modules/orders/bindings/orders_binding.dart';
@@ -290,6 +292,11 @@ class AppPages {
       name: _Paths.BUYER_FAV_AGENCY_SELECTION,
       page: () => const BuyerFavAgencySelectionView(),
       binding: BuyerFavAgencySelectionBinding(),
+    ),
+    GetPage(
+      name: _Paths.ORDER_REPORT,
+      page: () => const OrderReportView(),
+      binding: OrderReportBinding(),
     ),
   ];
 }
